@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ali Hassan's Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Share+Tech+Mono&display=swap">
+<style>
+:root{--page:#e4e7ec;--body:#2b3340;--body-edge:#1c222b;--lcd:#c8d2b6;--lcd-ink:#1d2819;--lcd-ghost:rgba(29,40,25,.5);
+--digit:#f1eee6;--digit-ink:#20242b;--digit-edge:#b9b4a7;--func:#8794a8;--func-ink:#fff;--func-edge:#5d6a7e;
+--op:#3d4759;--op-ink:#f5c26b;--op-edge:#232a36;--eq:#e8833a;--eq-edge:#a95a1c;--ac:#c4453b;--ac-edge:#8a2b24;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#12151a}}
+:root[data-theme="dark"]{--page:#12151a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--page);display:flex;align-items:center;justify-content:center;font-family:"Barlow Semi Condensed",system-ui,sans-serif}
+.calc{width:min(360px,94vw);background:var(--body);border-radius:28px;padding:22px 20px 24px;border:2px solid var(--body-edge);box-shadow:0 22px 40px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.08)}
+.lcd{background:var(--lcd);border-radius:12px;padding:12px 16px 10px;margin-bottom:20px;box-shadow:inset 0 4px 10px rgba(0,0,0,.35),inset 0 0 0 2px #9fa98d;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;font-family:"Share Tech Mono",ui-monospace,monospace;color:var(--lcd-ink)}
+.expr{font-size:16px;min-height:20px;text-align:right;color:var(--lcd-ghost);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.val{font-size:46px;line-height:1.1;text-align:right;white-space:nowrap;overflow:hidden}
+.credit{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}
+.credit span{font-size:15px;font-weight:500;color:#9aa6b8}
+.credit strong{font-size:24px;font-weight:600;letter-spacing:.5px;background:linear-gradient(90deg,#f5c26b,#e8833a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+button{font:inherit;font-size:24px;font-weight:600;height:58px;border:0;border-radius:14px;cursor:pointer;color:var(--digit-ink);background:var(--digit);box-shadow:0 5px 0 var(--digit-edge);transition:transform .06s,box-shadow .06s;user-select:none}
+button:active,button.hit{transform:translateY(4px);box-shadow:0 1px 0 var(--digit-edge)}
+button:focus-visible{outline:3px solid #7fc1ff;outline-offset:2px}
+.f{background:var(--func);color:var(--func-ink);box-shadow:0 5px 0 var(--func-edge);font-size:21px}
+.f:active,.f.hit{box-shadow:0 1px 0 var(--func-edge)}
+.o{background:var(--op);color:var(--op-ink);box-shadow:0 5px 0 var(--op-edge);font-size:28px}
+.o:active,.o.hit{box-shadow:0 1px 0 var(--op-edge)}
+.o.on{background:var(--op-ink);color:var(--op)}
+.ac{background:var(--ac);color:#fff;box-shadow:0 5px 0 var(--ac-edge)}
+.ac:active,.ac.hit{box-shadow:0 1px 0 var(--ac-edge)}
+.eq{background:var(--eq);color:#fff;box-shadow:0 5px 0 var(--eq-edge)}
+.eq:active,.eq.hit{box-shadow:0 1px 0 var(--eq-edge)}
+.wide{grid-column:span 2}
+.gate{display:none;width:min(340px,92vw);background:var(--body);border-radius:28px;padding:30px 24px 28px;border:2px solid var(--body-edge);box-shadow:0 22px 40px rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.08);text-align:center}
+.locked .gate{display:block}
+.locked .calc{display:none}
+.gate h1{margin:0 0 4px;font-size:26px;font-weight:600;color:#f1eee6}
+.gate p{margin:0 0 20px;color:#9aa6b8;font-size:16px}
+.gate .credit{border:0;padding:0;margin:0 0 22px}
+.gate input{width:100%;height:52px;border:0;border-radius:12px;background:var(--lcd);color:var(--lcd-ink);font-family:"Share Tech Mono",ui-monospace,monospace;font-size:22px;text-align:center;letter-spacing:3px;box-shadow:inset 0 4px 10px rgba(0,0,0,.35);margin-bottom:14px}
+.gate input:focus-visible{outline:3px solid #7fc1ff;outline-offset:2px}
+.gate button{width:100%}
+.gate .msg{min-height:22px;margin:12px 0 0;font-size:15px;color:#ff8a7e}
+@media (prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body class="locked">
+<div class="gate" id="gate">
+  <p class="credit"><span>Created by</span><strong>Ali Hassan</strong></p>
+  <h1>Calculator</h1>
+  <p>Enter the password to continue</p>
+  <input id="pw" type="password" placeholder="Password" autocomplete="off" aria-label="Password">
+  <button class="eq" id="pwbtn">Unlock</button>
+  <p class="msg" id="pwmsg" aria-live="polite"></p>
+</div>
+<div class="calc" role="application" aria-label="Calculator">
+  <p class="credit"><span>Created by</span><strong>Ali Hassan</strong></p>
+  <div class="lcd" aria-live="polite"><div class="expr" id="expr"></div><div class="val" id="val">0</div></div>
+  <div class="keys" id="keys">
+    <button class="f" data-a="recip" data-k="r" aria-label="Reciprocal">1/x</button>
+    <button class="f" data-a="sq" data-k="s" aria-label="Square">x²</button>
+    <button class="f" data-a="sqrt" data-k="q" aria-label="Square root">√</button>
+    <button class="f" data-a="back" data-k="Backspace" aria-label="Backspace">⌫</button>
+    <button class="ac" data-a="clear" data-k="Escape">AC</button>
+    <button class="f" data-a="neg" data-k="n" aria-label="Plus minus">±</button>
+    <button class="f" data-a="pct" data-k="%">%</button>
+    <button class="o" data-a="op" data-v="/" data-k="/" aria-label="Divide">÷</button>
+    <button data-a="d" data-v="7" data-k="7">7</button>
+    <button data-a="d" data-v="8" data-k="8">8</button>
+    <button data-a="d" data-v="9" data-k="9">9</button>
+    <button class="o" data-a="op" data-v="*" data-k="*" aria-label="Multiply">×</button>
+    <button data-a="d" data-v="4" data-k="4">4</button>
+    <button data-a="d" data-v="5" data-k="5">5</button>
+    <button data-a="d" data-v="6" data-k="6">6</button>
+    <button class="o" data-a="op" data-v="-" data-k="-" aria-label="Subtract">−</button>
+    <button data-a="d" data-v="1" data-k="1">1</button>
+    <button data-a="d" data-v="2" data-k="2">2</button>
+    <button data-a="d" data-v="3" data-k="3">3</button>
+    <button class="o" data-a="op" data-v="+" data-k="+" aria-label="Add">+</button>
+    <button class="wide" data-a="d" data-v="0" data-k="0">0</button>
+    <button data-a="dot" data-k=".">.</button>
+    <button class="eq" data-a="eq" data-k="Enter" aria-label="Equals">=</button>
+  </div>
+</div>
+<script>
+(function(){
+var PASSWORD="ali123";
+var b=document.body,inp=document.getElementById("pw"),msg=document.getElementById("pwmsg");
+function openCalc(){b.classList.remove("locked");}
+try{if(sessionStorage.getItem("calc-ok")==="1"){openCalc();}}catch(e){}
+function check(){
+  if(inp.value===PASSWORD){try{sessionStorage.setItem("calc-ok","1");}catch(e){}openCalc();}
+  else{msg.textContent="Wrong password, try again";inp.value="";inp.focus();}
+}
+document.getElementById("pwbtn").addEventListener("click",check);
+inp.addEventListener("keydown",function(e){if(e.key==="Enter"){check();}});
+if(b.classList.contains("locked")){inp.focus();}
+})();
+</script>
+<script>
+(function(){
+var SYM={"+":"+","-":"−","*":"×","/":"÷"};
+var cur="0",acc=null,op=null,fresh=false,done=false,err=false,lastOp=null,lastVal=null,expr="";
+var elV=document.getElementById("val"),elE=document.getElementById("expr");
+
+function clean(n){return parseFloat(n.toPrecision(12));}
+function toStr(n){
+  if(!isFinite(n)){return null;}
+  var r=clean(n),s=String(r);
+  if(s.indexOf("e")===-1&&s.replace(/[-.]/g,"").length>12){s=r.toExponential(6).replace(/\.?0+e/,"e");}
+  return s;
+}
+function pretty(s){
+  if(s.indexOf("e")!==-1){return s;}
+  var neg=s.charAt(0)==="-";if(neg){s=s.slice(1);}
+  var p=s.split("."),i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,",");
+  return (neg?"-":"")+i+(p.length>1?"."+p[1]:"");
+}
+function calc(a,b,o){
+  if(o==="+"){return a+b;}
+  if(o==="-"){return a-b;}
+  if(o==="*"){return a*b;}
+  if(o==="/"){return b===0?NaN:a/b;}
+  return b;
+}
+function fail(msg){err=true;cur="0";acc=null;op=null;expr="";elV.textContent=msg;elE.textContent="";mark();}
+function show(){
+  if(err){return;}
+  var t=pretty(cur);
+  elV.textContent=t;
+  elV.style.fontSize=t.length>14?"26px":t.length>11?"32px":t.length>8?"40px":"46px";
+  elE.textContent=expr;
+  mark();
+}
+function mark(){
+  var b=document.querySelectorAll('[data-a="op"]');
+  for(var i=0;i<b.length;i++){b[i].classList.toggle("on",!err&&op!==null&&fresh&&!done&&b[i].getAttribute("data-v")===op);}
+}
+function reset(){cur="0";acc=null;op=null;fresh=false;done=false;err=false;lastOp=null;lastVal=null;expr="";elV.style.fontSize="";}
+function guard(){if(err){reset();}}
+
+function digit(d){
+  guard();
+  if(done){acc=null;op=null;expr="";done=false;fresh=true;}
+  if(fresh){cur=d;fresh=false;}
+  else if(cur==="0"){cur=d;}
+  else if(cur.replace(/[-.]/g,"").length<12){cur+=d;}
+  show();
+}
+function dot(){
+  guard();
+  if(done){acc=null;op=null;expr="";done=false;fresh=true;}
+  if(fresh){cur="0.";fresh=false;}
+  else if(cur.indexOf(".")===-1){cur+=".";}
+  show();
+}
+function setOp(o){
+  guard();
+  var v=parseFloat(cur);
+  if(op!==null&&!fresh&&!done){
+    var r=calc(acc,v,op);
+    var s=toStr(r);
+    if(s===null){fail("Cannot divide by 0");return;}
+    acc=parseFloat(s);cur=s;
+  }else if(op===null||done){
+    acc=v;
+  }
+  op=o;fresh=true;done=false;
+  expr=pretty(toStr(acc))+" "+SYM[o];
+  show();
+}
+function equals(){
+  guard();
+  var a,b,o;
+  if(op!==null&&!done){a=acc;b=parseFloat(cur);o=op;}
+  else if(lastOp!==null){a=parseFloat(cur);b=lastVal;o=lastOp;}
+  else{return;}
+  var s=toStr(calc(a,b,o));
+  if(s===null){fail("Cannot divide by 0");return;}
+  expr=pretty(toStr(a))+" "+SYM[o]+" "+pretty(toStr(b))+" =";
+  lastOp=o;lastVal=b;cur=s;acc=null;op=null;fresh=true;done=true;
+  show();
+}
+function unary(kind){
+  guard();
+  var v=parseFloat(cur),r,label=pretty(toStr(v));
+  if(kind==="sqrt"){if(v<0){fail("Invalid input");return;}r=Math.sqrt(v);expr="√("+label+")";}
+  else if(kind==="sq"){r=v*v;expr="sqr("+label+")";}
+  else{if(v===0){fail("Cannot divide by 0");return;}r=1/v;expr="1/("+label+")";}
+  var s=toStr(r);
+  if(s===null){fail("Overflow");return;}
+  cur=s;fresh=true;
+  if(done){op=null;acc=null;}
+  show();
+}
+function negate(){
+  guard();
+  if(parseFloat(cur)===0&&cur.indexOf(".")===-1){return;}
+  cur=cur.charAt(0)==="-"?cur.slice(1):"-"+cur;
+  show();
+}
+function percent(){
+  guard();
+  var v=parseFloat(cur),r=(op!==null&&acc!==null&&!done)?acc*v/100:v/100;
+  var s=toStr(r);
+  if(s===null){fail("Overflow");return;}
+  cur=s;fresh=true;
+  show();
+}
+function back(){
+  guard();
+  if(fresh||done){return;}
+  cur=cur.slice(0,-1);
+  if(cur===""||cur==="-"){cur="0";}
+  show();
+}
+function run(a,v){
+  if(a==="d"){digit(v);}
+  else if(a==="dot"){dot();}
+  else if(a==="op"){setOp(v);}
+  else if(a==="eq"){equals();}
+  else if(a==="clear"){reset();show();}
+  else if(a==="back"){back();}
+  else if(a==="neg"){negate();}
+  else if(a==="pct"){percent();}
+  else{unary(a);}
+}
+document.getElementById("keys").addEventListener("click",function(e){
+  var b=e.target.closest("button");
+  if(b){run(b.getAttribute("data-a"),b.getAttribute("data-v"));}
+});
+var map={Enter:"Enter","=":"Enter",",":".",Delete:"Escape"};
+document.addEventListener("keydown",function(e){
+  if(document.body.classList.contains("locked")){return;}
+  if(e.ctrlKey||e.metaKey||e.altKey){return;}
+  var k=map[e.key]||e.key;
+  var b=document.querySelector('[data-k="'+(k.length===1?k.toLowerCase():k)+'"]');
+  if(!b){return;}
+  e.preventDefault();
+  b.classList.add("hit");
+  setTimeout(function(){b.classList.remove("hit");},110);
+  run(b.getAttribute("data-a"),b.getAttribute("data-v"));
+});
+show();
+})();
+</script>
+</body>
+</html>
